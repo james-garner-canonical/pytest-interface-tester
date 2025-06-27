@@ -35,12 +35,13 @@ class InterfaceTester:
     def __init__(
         self,
         repo: str = "https://github.com/canonical/charm-relation-interfaces",
-        branch: str = "main",
+        branch: Optional[str] = None,
         base_path: str = "interfaces",
     ):
         self._repo = repo
         self._branch = branch
         self._base_path = base_path
+        self._verify_repo_cert = True
 
         # set by .configure()
         self._charm_type = None
@@ -61,6 +62,7 @@ class InterfaceTester:
         charm_type: Optional[Type[CharmType]] = None,
         repo: Optional[str] = None,
         branch: Optional[str] = None,
+        verify: Optional[bool] = None,
         base_path: Optional[str] = None,
         interface_name: Optional[str] = None,
         endpoint: Optional[str] = None,
@@ -82,6 +84,7 @@ class InterfaceTester:
         :param charm_type: The charm to test.
         :param repo: Repo to fetch the tests from.
         :param branch: Branch to fetch the tests from.
+        :param verify: verify the repo server certificate.
         :param base_path: path to an interfaces-compliant subtree within the repo.
         :param meta: charm metadata.yaml contents.
         :param actions: charm actions.yaml contents.
@@ -109,6 +112,8 @@ class InterfaceTester:
             self._state_template = state_template
         if branch:
             self._branch = branch
+        if verify is not None:
+            self._verify_repo_cert = verify
         if base_path:
             self._base_path = base_path
         if juju_version:
@@ -189,6 +194,12 @@ class InterfaceTester:
     def _collect_interface_test_specs(self) -> InterfaceTestSpec:
         """Gathers the test cases as defined by charm-relation-interfaces, for both roles."""
         with tempfile.TemporaryDirectory() as tempdir:
+            cmd = ["git", "clone", self._repo, "--depth", "1"]
+            if branch := self._branch:
+                cmd.extend(("--branch", branch))
+            if not self._verify_repo_cert:
+                cmd.extend(("-c", "http.sslVerify=false"))
+
             cmd = f"git clone --depth 1 --branch {self._branch} {self._repo}".split(" ")
             proc = Popen(cmd, cwd=tempdir, stderr=PIPE, stdout=PIPE)
             proc.wait()
