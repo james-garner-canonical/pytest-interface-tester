@@ -52,6 +52,8 @@ class InterfaceTester:
         self._interface_version = 0
         self._juju_version = None
         self._state_template = None
+        self._interface_subdir = ""
+        self._tests_dir = "interface_tests"
 
         self._charm_spec_cache = None
 
@@ -70,6 +72,8 @@ class InterfaceTester:
         meta: Optional[Dict[str, Any]] = None,
         actions: Optional[Dict[str, Any]] = None,
         config: Optional[Dict[str, Any]] = None,
+        interface_subdir: Optional[str] = None,
+        tests_dir: Optional[str] = None,
     ):
         """
 
@@ -88,6 +92,10 @@ class InterfaceTester:
         :param config: charm config.yaml contents.
         :param juju_version: juju version that Scenario will simulate (also sets JUJU_VERSION
             envvar at charm runtime.)
+        :param interface_subdir: Subdirectory to look for versioned interface direstories in
+            under interfaces/interface_name.
+        :param tests_dir: Name of tests directory under
+            interfaces/interface_name/interface_subdir/vN.
         """
         if charm_type:
             self._charm_type = charm_type
@@ -113,6 +121,10 @@ class InterfaceTester:
             self._base_path = base_path
         if juju_version:
             self._juju_version = juju_version
+        if interface_subdir is not None:
+            self._interface_subdir = interface_subdir
+        if tests_dir is not None:
+            self._tests_dir = tests_dir
 
     def _validate_config(self):
         """Validate the configuration of the tester.
@@ -209,6 +221,7 @@ class InterfaceTester:
                 / repo_name
                 / self._base_path
                 / self._interface_name.replace("-", "_")
+                / self._interface_subdir
                 / f"v{self._interface_version}"
             )
             if not intf_spec_path.exists():
@@ -222,6 +235,7 @@ class InterfaceTester:
                 intf_spec_path,
                 interface_name=self._interface_name,
                 version=self._interface_version,
+                tests_dir=self._tests_dir,
             )
 
         return tests
