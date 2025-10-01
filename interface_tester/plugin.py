@@ -2,6 +2,7 @@
 # See LICENSE file for licensing details.
 import logging
 import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 from subprocess import PIPE, Popen
 from typing import Any, Callable, Dict, Generator, List, Optional, Tuple, Type
@@ -324,6 +325,28 @@ class InterfaceTester:
         \tjuju_version={self._juju_version}
         \tstate_template={self._state_template}>"""
 
+    @contextmanager
+    def context(self, test_fn: Callable, role: RoleLiteral, schema: DataBagSchema, endpoint: str):
+        logger.debug(f"Entering context {self!r}, {role=!r} {endpoint=!r} {schema=}.")
+        self._validate_config()  # will raise if misconfigured
+        ctx = _InterfaceTestContext(
+            role=role,
+            schema=schema,
+            interface_name=self._interface_name,
+            endpoint=endpoint,
+            version=self._interface_version,
+            charm_type=self._charm_type,
+            state_template=self._state_template,
+            meta=self.meta,
+            config=self.config,
+            actions=self.actions,
+            supported_endpoints=self._gather_supported_endpoints(),
+            test_fn=test_fn,
+            juju_version=self._juju_version,
+        )
+        with tester_context(ctx):
+            yield ctx
+
     def run(self) -> bool:
         """Run interface tests.
 
@@ -335,23 +358,8 @@ class InterfaceTester:
         ran_some = False
 
         for test_fn, role, schema, endpoint in self._yield_tests():
-            ctx = _InterfaceTestContext(
-                role=role,
-                schema=schema,
-                interface_name=self._interface_name,
-                endpoint=endpoint,
-                version=self._interface_version,
-                charm_type=self._charm_type,
-                state_template=self._state_template,
-                meta=self.meta,
-                config=self.config,
-                actions=self.actions,
-                supported_endpoints=self._gather_supported_endpoints(),
-                test_fn=test_fn,
-                juju_version=self._juju_version,
-            )
             try:
-                with tester_context(ctx):
+                with self.context(test_fn, role, schema, endpoint) as ctx:
                     test_fn()
             except Exception as e:
                 logger.exception(f"Interface tester plugin failed with {e}")
