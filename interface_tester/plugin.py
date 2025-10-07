@@ -93,10 +93,10 @@ class InterfaceTester:
         :param config: charm config.yaml contents.
         :param juju_version: juju version that Scenario will simulate (also sets JUJU_VERSION
             envvar at charm runtime.)
-        :param interface_subdir: Subdirectory to look for versioned interface direstories in
+        :param interface_subdir: Subdirectory to look for versioned interface directories in
             under interfaces/interface_name.
         :param tests_dir: Name of tests directory under
-            interfaces/interface_name/interface_subdir/vN.
+            interfaces/<interface_name>/<interface_subdir>/v<N>.
         """
         if charm_type:
             self._charm_type = charm_type
